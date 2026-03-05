@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Раскрой металла</title>
+
+<style>
+:root{
+  --bg:#f2f2f7;
+  --card:#ffffff;
+  --text:#000000;
+  --accent:#007aff;
+  --danger:#ff3b30;
+  --success:#34c759;
+  --border:#d1d1d6;
+}
+body.dark-theme{
+  --bg:#000000;
+  --card:#1c1c1e;
+  --text:#ffffff;
+  --border:#2c2c2e;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+header{
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:var(--card);
+  padding:14px 16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid var(--border);
+}
+
+h1{
+  font-size:18px;
+  margin:0;
+}
+
+.theme-toggle{
+  font-size:22px;
+  background:none;
+  border:none;
+}
+
+.container{
+  padding:12px;
+}
+
+.card{
+  background:var(--card);
+  border-radius:14px;
+  padding:14px;
+  margin-bottom:14px;
+}
+
+.card h2{
+  margin:0 0 10px 0;
+  font-size:16px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th,td{
+  border-bottom:1px solid var(--border);
+  padding:8px 4px;
+  text-align:center;
+  font-size:14px;
+}
+
+input{
+  width:100%;
+  padding:10px;
+  font-size:16px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--text);
+}
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  font-size:16px;
+  border-radius:12px;
+  border:none;
+  background:var(--accent);
+  color:white;
+}
+
+button.secondary{background:#8e8e93}
+button.success{background:var(--success)}
+button.danger{background:var(--danger)}
+
+.inline{
+  display:flex;
+  gap:8px;
+}
+
+.inline button{
+  width:auto;
+  flex:1;
+}
+
+.delete-btn{
+  background:var(--danger);
+  color:white;
+  border:none;
+  border-radius:8px;
+  padding:6px 10px;
+}
+
+.error{color:var(--danger)}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>Раскрой металла</h1>
+  <button class="theme-toggle" id="themeToggle">🌞</button>
+</header>
+
+<div class="container">
+
+<div class="card">
+<h2>Листы</h2>
+<table id="sheetsTable">
+<tr><th>Ширина</th><th>Длина</th><th>Кол-во</th><th></th></tr>
+</table>
+<div class="inline">
+  <button class="success" onclick="addSheet()">Добавить</button>
+  <button class="secondary" onclick="exportSheets()">Экспорт</button>
+</div>
+</div>
+
+<div class="card">
+<h2>Детали</h2>
+<div class="inline">
+  <input id="detailWidthInput" type="number" placeholder="Ширина">
+  <input id="detailLengthInput" type="number" placeholder="Длина">
+  <input id="detailCountInput" type="number" placeholder="Кол-во">
+</div>
+<button class="success" onclick="addDetailRow()">Добавить деталь</button>
+
+<table id="detailsTable" style="margin-top:10px">
+<tr><th>Ширина</th><th>Длина</th><th>Кол-во</th><th></th></tr>
+</table>
+<button class="secondary" onclick="exportDetails()">Экспорт</button>
+</div>
+
+<div class="card">
+<h2>Раскрой</h2>
+<button onclick="calculateCutting()">Выполнить раскрой</button>
+<button class="secondary" onclick="exportCutting()">Экспорт</button>
+<div id="cuttingResult" style="margin-top:12px"></div>
+</div>
+
+</div>
+
+<script>
+/* === ВЕСЬ JAVASCRIPT НИЖЕ ОСТАВЛЕН БЕЗ ИЗМЕНЕНИЙ ПО ЛОГИКЕ === */
+
+        // Переключение темы
+        let isDarkTheme = false;
+        const themeToggle = document.getElementById('themeToggle');
+        
+        function toggleTheme() {
+            isDarkTheme = !isDarkTheme;
+            document.body.classList.toggle('dark-theme');
+            themeToggle.textContent = isDarkTheme ? '🌙' : '🌞';
+        }
+        
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // Функции для работы с листами
+        function addSheet() {
+            let table = document.getElementById('sheetsTable');
+            let row = table.insertRow();
+            
+            // Ширина
+            let widthCell = row.insertCell();
+            let widthInput = document.createElement('input');
+            widthInput.type = 'number';
+            widthInput.value = '1250';
+            widthCell.appendChild(widthInput);
+            
+            // Длина
+            let lengthCell = row.insertCell();
+            let lengthInput = document.createElement('input');
+            lengthInput.type = 'number';
+            lengthCell.appendChild(lengthInput);
+            
+            // Количество
+            let countCell = row.insertCell();
+            let countInput = document.createElement('input');
+            countInput.type = 'number';
+            countInput.value = '1';
+            countCell.appendChild(countInput);
+            
+            // Кнопка удаления
+            let actionCell = row.insertCell();
+            let deleteButton = document.createElement('button');
+            deleteButton.textContent = '✖';
+            deleteButton.className = 'delete-btn';
+            deleteButton.style.padding = '2px 6px';
+            deleteButton.onclick = function() {
+                table.deleteRow(row.rowIndex);
+            };
+            actionCell.appendChild(deleteButton);
+        }
+
+        // Добавление детали через отдельные поля
+        function addDetailRow() {
+            let width = parseInt(document.getElementById('detailWidthInput').value) || 0;
+            let length = parseInt(document.getElementById('detailLengthInput').value) || 0;
+            let count = parseInt(document.getElementById('detailCountInput').value) || 0;
+            if (width <= 0 || length <= 0 || count <= 0) return;
+            let table = document.getElementById('detailsTable');
+            let row = table.insertRow();
+            let widthCell = row.insertCell();
+            let lengthCell = row.insertCell();
+            let countCell = row.insertCell();
+            widthCell.textContent = width;
+            lengthCell.textContent = length;
+            countCell.textContent = count;
+            let actionCell = row.insertCell();
+            let deleteButton = document.createElement('button');
+            deleteButton.textContent = '✖';
+            deleteButton.className = 'delete-btn';
+            deleteButton.style.padding = '2px 6px';
+            deleteButton.onclick = function() {
+                table.deleteRow(row.rowIndex);
+            };
+            actionCell.appendChild(deleteButton);
+            // Очищаем поля ширины и количества
+            document.getElementById('detailWidthInput').value = '';
+            document.getElementById('detailLengthInput').value = '';
+            document.getElementById('detailCountInput').value = '';
+        }
+
+        // Функции экспорта
+        function exportSheets() {
+            let text = '';
+            let table = document.getElementById('sheetsTable');
+            for (let i = 1; i < table.rows.length; i++) {
+                let row = table.rows[i];
+                let width = row.cells[0].textContent;
+                let length = row.cells[1].textContent;
+                let count = row.cells[2].textContent;
+                text += `${width}x${length} x${count}\n`;
+            }
+            copyToClipboard(text);
+        }
+
+        function exportDetails() {
+            let text = '';
+            let table = document.getElementById('detailsTable');
+            for (let i = 1; i < table.rows.length; i++) {
+                let row = table.rows[i];
+                let width = row.cells[0].textContent;
+                let length = row.cells[1].textContent;
+                let count = row.cells[2].textContent;
+                text += `${width}x${length} x${count}\n`;
+            }
+            copyToClipboard(text);
+        }
+
+        function exportCutting() {
+            let text = document.getElementById('cuttingResult').innerText;
+            copyToClipboard(text);
+        }
+
+        function copyToClipboard(text) {
+            let textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert('Скопировано в буфер обмена');
+        }
+
+        // --- Алгоритм раскроя ---
+        var runBtn = document.getElementById('runCuttingBtn');
+        if (runBtn){
+        runBtn.onclick = function() {
+            // Считываем листы
+            const sheets = [];
+            document.querySelectorAll('#sheetList .sheet-row').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const width = parseInt(inputs[0].value);
+                const height = parseInt(inputs[1].value);
+                const count = parseInt(inputs[2].value);
+                if (width > 0 && height > 0 && count > 0) {
+                    for (let i = 0; i < count; i++) {
+                        sheets.push({ width, height });
+                    }
+                }
+            });
+            // Считываем детали
+            let details = [];
+            document.querySelectorAll('#detailsList .sheet-row').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const width = parseInt(inputs[0].value);
+                const height = parseInt(inputs[1].value);
+                const count = parseInt(inputs[2].value);
+                if (width > 0 && height > 0 && count > 0) {
+                    details.push({ width, height, count });
+                }
+            });
+            if (!sheets.length || !details.length) {
+                document.getElementById('cuttingResult').innerHTML = '<span style="color:red">Заполните листы и детали!</span>';
+                return;
+            }
+            // Новый алгоритм: сначала режем длинные детали, потом из оставшейся полосы режем короткие детали, правильно учитывая возможность резки длинных полос на короткие детали.
+            let cuttingGroups = [];
+            let detailsUsed = {};
+            
+            // Сортируем детали по ширине (приоритет широким), затем по высоте
+            let detailsLeft = details.map(d => ({ ...d }));
+            detailsLeft.sort((a, b) => {
+                if (a.width !== b.width) return b.width - a.width;
+                return b.height - a.height;
+            });
+
+            for (let s = 0; s < sheets.length; s++) {
+                let sheet = { width: sheets[s].width, height: sheets[s].height };
+                let cuts = [];
+                let remainingWidth = sheet.width;
+                let remainingStrips = []; // Остатки полос для дальнейшей нарезки
+
+                // Сначала размещаем длинные детали
+                let longDetails = detailsLeft.filter(d => d.height === sheet.height);
+                for (let detail of longDetails) {
+                    if (detail.count <= 0) continue;
+
+                    // Сколько полос этой детали можно разместить по ширине
+                    let stripsCount = Math.floor(remainingWidth / detail.width);
+                    if (stripsCount === 0) continue;
+
+                    let stripsUsed = Math.min(stripsCount, detail.count);
+                    // правило зажима: деталь <=95 не может быть единственной на листе
+                    if (detail.width <= 95 && stripsUsed === 1 && detail.count === 1) {
+                        continue;
+                    }
+                    if (stripsUsed > 0) {
+                        cuts.push({
+                            width: detail.width,
+                            height: detail.height,
+                            count: stripsUsed
+                        });
+                        detail.count -= stripsUsed;
+                        detailsUsed[`${detail.width}x${detail.height}`] = 
+                            (detailsUsed[`${detail.width}x${detail.height}`] || 0) + stripsUsed;
+                        
+                        remainingWidth -= stripsUsed * detail.width;
+                    }
+                }
+
+                // Если остались неиспользованные полосы по ширине
+                if (remainingWidth > 0) {
+                    remainingStrips.push({
+                        width: remainingWidth,
+                        height: sheet.height
+                    });
+                }
+
+                // Теперь пробуем разместить короткие детали
+                let shortDetails = detailsLeft.filter(d => d.height < sheet.height);
+                
+                // Группируем короткие детали по ширине
+                let detailsByWidth = {};
+                for (let detail of shortDetails) {
+                    if (detail.count <= 0) continue;
+                    if (!detailsByWidth[detail.width]) {
+                        detailsByWidth[detail.width] = [];
+                    }
+                    detailsByWidth[detail.width].push(detail);
+                }
+
+                // Обрабатываем каждую группу деталей одинаковой ширины
+                let widths = Object.keys(detailsByWidth).sort((a, b) => b - a);
+                for (let width of widths) {
+                    let details = detailsByWidth[width];
+                    if (details.length === 0) continue;
+
+                    // Находим подходящую полосу
+                    let stripIndex = -1;
+                    for (let i = 0; i < remainingStrips.length; i++) {
+                        if (remainingStrips[i].width >= parseInt(width)) {
+                            stripIndex = i;
+                            break;
+                        }
+                    }
+                    if (stripIndex === -1) continue;
+
+                    let strip = remainingStrips[stripIndex];
+                    let usedHeight = 0;
+
+                    // Размещаем все детали этой ширины
+                    for (let detail of details) {
+                        while (detail.count > 0 && usedHeight + detail.height <= strip.height) {
+                            let found = cuts.find(c => c.width === detail.width && c.height === detail.height);
+                            if (found) {
+                                found.count++;
+                            } else {
+                                cuts.push({
+                                    width: detail.width,
+                                    height: detail.height,
+                                    count: 1
+                                });
+                            }
+                            detail.count--;
+                            detailsUsed[`${detail.width}x${detail.height}`] = 
+                                (detailsUsed[`${detail.width}x${detail.height}`] || 0) + 1;
+                            usedHeight += detail.height;
+                        }
+                    }
+
+                    // Обновляем остатки
+                    if (usedHeight > 0) {
+                        // Остаток по высоте
+                        if (usedHeight < strip.height) {
+                            remainingStrips.push({
+                                width: parseInt(width),
+                                height: strip.height - usedHeight
+                            });
+                        }
+                        
+                        // Остаток по ширине
+                        let remainingWidth = strip.width - parseInt(width);
+                        if (remainingWidth > 0) {
+                            remainingStrips.push({
+                                width: remainingWidth,
+                                height: strip.height
+                            });
+                        }
+                        
+                        // Удаляем использованную полосу
+                        remainingStrips.splice(stripIndex, 1);
+                    }
+                }
+
+                // Объединяем одинаковые остатки
+                let remainders = {};
+                for (let strip of remainingStrips) {
+                    if (strip.width > 0 && strip.height > 0) {
+                        let key = `${strip.width}x${strip.height}`;
+                        remainders[key] = (remainders[key] || 0) + 1;
+                    }
+                }
+
+                // Формируем строку остатков
+                let restParts = [];
+                for (let [size, count] of Object.entries(remainders)) {
+                    restParts.push(`${size} x${count}`);
+                }
+                let rest = restParts.length > 0 ? restParts.join(' ') : '0x0';
+
+                cuttingGroups.push({ cuts, rest, length: sheet.height });
+            }
+
+            // Формируем вывод (группируем одинаковые листы)
+            let groups = {};
+            for (let g of cuttingGroups) {
+                let cutsStr = g.cuts.map(d => `${d.width}x${d.height} x${d.count}`).join(', ') || '-';
+                let key = cutsStr + '|' + g.rest;
+                if (!groups[key]) {
+                    groups[key] = {count:0, cuts:cutsStr, rest:g.rest, length:g.length};
+                }
+                groups[key].count++;
+            }
+
+            let result = '<table border="1" cellpadding="6" style="border-collapse:collapse; width:100%; text-align:center;">';
+            result += '<tr><th>Листы</th><th>Раскрой</th><th>Остаток</th></tr>';
+
+            for (let key in groups) {
+                let g = groups[key];
+                let sheetLabel = g.count + ' × ' + g.length;
+                if (g.count === 1) sheetLabel = '1 × ' + g.length;
+                result += `<tr><td>${sheetLabel}</td><td>${g.cuts}</td><td>${g.rest}</td></tr>`;
+            }
+
+            result += '</table>';
+
+            // Итоговая сводка
+            result += '<div style="margin-top:16px; text-align:left;">';
+            result += '<b>Итого:</b><br>';
+            for (let d of details) {
+                let used = detailsUsed[`${d.width}x${d.height}`] || 0;
+                result += `${d.width}x${d.height} x${used}`;
+                if (d.count > 0) result += ` <span style="color:red">(не хватило: ${d.count})</span>`;
+                result += '<br>';
+            }
+            result += '</div>';
+            document.getElementById('cuttingResult').innerHTML = result;
+        };
+        }
+
+        function calculateCutting() {
+            // Считываем листы
+            const sheets = [];
+            let sheetsTable = document.getElementById('sheetsTable');
+            for (let i = 1; i < sheetsTable.rows.length; i++) {
+                let row = sheetsTable.rows[i];
+                let width = parseInt(row.cells[0].querySelector('input').value) || 0;
+                let length = parseInt(row.cells[1].querySelector('input').value) || 0;
+                let count = parseInt(row.cells[2].querySelector('input').value) || 0;
+                if (width > 0 && length > 0 && count > 0) {
+                    for (let j = 0; j < count; j++) {
+                        sheets.push({ width, height: length });
+                    }
+                }
+            }
+
+            // Считываем детали и объединяем одинаковые
+            let details = [];
+            let detailsTable = document.getElementById('detailsTable');
+            let detailsMap = {};
+            for (let i = 1; i < detailsTable.rows.length; i++) {
+                let row = detailsTable.rows[i];
+                let width = parseInt(row.cells[0].textContent) || 0;
+                let length = parseInt(row.cells[1].textContent) || 0;
+                let count = parseInt(row.cells[2].textContent) || 0;
+                if (width > 0 && length > 0 && count > 0) {
+                    let key = `${width}x${length}`;
+                    if (!detailsMap[key]) {
+                        detailsMap[key] = { width, height: length, count: 0 };
+                    }
+                    detailsMap[key].count += count;
+                }
+            }
+            details = Object.values(detailsMap);
+
+            if (!sheets.length || !details.length) {
+                document.getElementById('cuttingResult').innerHTML = '<span class="error">Заполните листы и детали!</span>';
+                return;
+            }
+
+            let cuttingGroups = [];
+            let detailsUsed = {};
+            
+            // Создаем копию деталей для каждого листа
+            let originalDetails = details.map(d => ({ ...d }));
+
+            // сортируем листы по длине (длинные сначала)
+            sheets.sort((a,b)=> b.height - a.height);
+
+            // Обрабатываем каждый лист
+            for (let s = 0; s < sheets.length; s++) {
+                let sheet = { width: sheets[s].width, height: sheets[s].height };
+                let cuts = [];
+                let remainingWidth = sheet.width;
+                let remainingStrips = [];
+
+                // Обновляем количество оставшихся деталей из оригинального списка
+                let detailsLeft = originalDetails.map(d => ({
+                    ...d,
+                    count: Math.max(0, d.count - (detailsUsed[`${d.width}x${d.height}`] || 0))
+                }));
+
+                // Сортируем детали по ширине и длине
+                detailsLeft.sort((a,b)=>{
+                    if (a.height !== b.height) return b.height - a.height;
+                    return b.width - a.width;
+                });
+
+                // Сначала размещаем длинные детали
+                let longDetails = detailsLeft.filter(d => d.height === sheet.height);
+                for (let detail of longDetails) {
+                    if (detail.count <= 0) continue;
+
+                    let stripsCount = Math.floor(remainingWidth / detail.width);
+                    if (stripsCount === 0) continue;
+
+                    let stripsUsed = Math.min(stripsCount, detail.count);
+                    if (stripsUsed > 0) {
+                        cuts.push({
+                            width: detail.width,
+                            height: detail.height,
+                            count: stripsUsed
+                        });
+                        detail.count -= stripsUsed;
+                        detailsUsed[`${detail.width}x${detail.height}`] = 
+                            (detailsUsed[`${detail.width}x${detail.height}`] || 0) + stripsUsed;
+                        
+                        remainingWidth -= stripsUsed * detail.width;
+                    }
+                }
+
+                // Если остались неиспользованные полосы по ширине
+                if (remainingWidth > 0) {
+                    remainingStrips.push({
+                        width: remainingWidth,
+                        height: sheet.height
+                    });
+                }
+
+                // Обрабатываем короткие детали
+                let shortDetails = detailsLeft.filter(d => d.height < sheet.height && d.count > 0);
+                
+                // Обрабатываем каждую полосу рекурсивно
+                let newRemainingStrips = [];
+                for (let strip of remainingStrips) {
+                    newRemainingStrips.push(...processRemainingStrip(
+                        strip,
+                        shortDetails,
+                        cuts,
+                        detailsUsed
+                    ));
+                }
+                remainingStrips = newRemainingStrips;
+
+                // Объединяем одинаковые остатки
+                let remainders = {};
+                for (let strip of remainingStrips) {
+                    if (strip.width > 0 && strip.height > 0) {
+                        let key = `${strip.width}x${strip.height}`;
+                        remainders[key] = (remainders[key] || 0) + 1;
+                    }
+                }
+
+                // Формируем строку остатков
+                let restParts = [];
+                for (let [size, count] of Object.entries(remainders)) {
+                    restParts.push(`${size} x${count}`);
+                }
+                let rest = restParts.length > 0 ? restParts.join(' ') : '0x0';
+
+                cuttingGroups.push({ cuts, rest, length: sheet.height });
+            }
+
+            // Формируем вывод (группируем одинаковые листы)
+            let groups = {};
+            for (let g of cuttingGroups) {
+                let cutsStr = g.cuts.map(d => `${d.width}x${d.height} x${d.count}`).join(', ') || '-';
+                let key = cutsStr + '|' + g.rest;
+                if (!groups[key]) {
+                    groups[key] = {count:0, cuts:cutsStr, rest:g.rest, length:g.length};
+                }
+                groups[key].count++;
+            }
+
+            let result = '<table border="1" cellpadding="6" style="border-collapse:collapse; width:100%; text-align:center;">';
+            result += '<tr><th>Листы</th><th>Раскрой</th><th>Остаток</th></tr>';
+
+            for (let key in groups) {
+                let g = groups[key];
+                let sheetLabel = g.count + ' × ' + g.length;
+                if (g.count === 1) sheetLabel = '1 × ' + g.length;
+                result += `<tr><td>${sheetLabel}</td><td>${g.cuts}</td><td>${g.rest}</td></tr>`;
+            }
+
+            result += '</table>';
+
+            // Итоговая сводка (только по уникальным деталям)
+            result += '<div style="margin-top:16px; text-align:left;">';
+            result += '<b>Итого:</b><br>';
+            for (let d of details) {
+                let used = detailsUsed[`${d.width}x${d.height}`] || 0;
+                result += `${d.width}x${d.height} x${used}`;
+                if (used < d.count) result += ` <span style="color:red">(не хватило: ${d.count - used})</span>`;
+                result += '<br>';
+            }
+            result += '</div>';
+            document.getElementById('cuttingResult').innerHTML = result;
+        };
+
+        // Исправляем алгоритм раскроя для рекурсивной обработки остатков
+        function processRemainingStrip(strip, details, cuts, detailsUsed) {
+            if (!details.length || strip.width === 0 || strip.height === 0) {
+                return strip.width > 0 && strip.height > 0 ? [strip] : [];
+            }
+            
+            let remainingStrips = [];
+            let detail = details[0];
+            let remainingDetails = details.slice(1);
+            
+            // Если деталь подходит по ширине и её нужно вырезать
+            if (detail.width <= strip.width && detail.count > 0) {
+                // Сколько деталей поместится по высоте
+                let maxCount = Math.floor(strip.height / detail.height);
+                let count = Math.min(maxCount, detail.count);
+                
+                if (count > 0) {
+                    // Добавляем деталь в раскрой
+                    let found = cuts.find(c => c.width === detail.width && c.height === detail.height);
+                    if (found) {
+                        found.count += count;
+                    } else {
+                        cuts.push({
+                            width: detail.width,
+                            height: detail.height,
+                            count: count
+                        });
+                    }
+                    
+                    detail.count -= count;
+                    detailsUsed[`${detail.width}x${detail.height}`] = 
+                        (detailsUsed[`${detail.width}x${detail.height}`] || 0) + count;
+                    
+                    let usedHeight = count * detail.height;
+                    
+                    // Если осталось место по высоте
+                    if (usedHeight < strip.height) {
+                        let heightRemainder = {
+                            width: detail.width,
+                            height: strip.height - usedHeight
+                        };
+                        // Попробуем разместить оставшиеся детали в высотном остатке
+                        let heightResults = processRemainingStrip(
+                            heightRemainder,
+                            remainingDetails.filter(d => d.count > 0),
+                            cuts,
+                            detailsUsed
+                        );
+                        remainingStrips.push(...heightResults);
+                    }
+                    
+                    // Если осталось место по ширине
+                    let remainingWidth = strip.width - detail.width;
+                    if (remainingWidth > 0) {
+                        // Создаём новую полосу из оставшейся ширины
+                        let widthRemainder = {
+                            width: remainingWidth,
+                            height: strip.height
+                        };
+                        
+                        // Рекурсивно обрабатываем оставшуюся ширину
+                        let nextDetails = details.filter(d => d.count > 0);
+                        if (nextDetails.length > 0) {
+                            let widthResults = processRemainingStrip(
+                                widthRemainder,
+                                nextDetails,
+                                cuts,
+                                detailsUsed
+                            );
+                            remainingStrips.push(...widthResults);
+                        } else {
+                            remainingStrips.push(widthRemainder);
+                        }
+                    }
+                } else if (remainingDetails.length > 0) {
+                    // Если деталь не поместилась по высоте, пробуем следующую
+                    remainingStrips.push(...processRemainingStrip(strip, remainingDetails, cuts, detailsUsed));
+                } else {
+                    remainingStrips.push(strip);
+                }
+            } else if (remainingDetails.length > 0) {
+                // Если деталь не подходит по ширине, пробуем следующую
+                remainingStrips.push(...processRemainingStrip(strip, remainingDetails, cuts, detailsUsed));
+            } else {
+                remainingStrips.push(strip);
+            }
+            
+            // Фильтруем и объединяем остатки
+            let uniqueRemainders = {}; // key -> {width,height,count}
+            for (let remainder of remainingStrips) {
+                if (remainder.width > 0 && remainder.height > 0) {
+                    let key = `${remainder.width}x${remainder.height}`;
+                    if (!uniqueRemainders[key]) {
+                        uniqueRemainders[key] = {width: remainder.width, height: remainder.height, count: 0};
+                    }
+                    uniqueRemainders[key].count++;
+                }
+            }
+            
+            let arr = [];
+            for (let k in uniqueRemainders) {
+                let r = uniqueRemainders[k];
+                for (let i = 0; i < r.count; i++) arr.push({width:r.width,height:r.height});
+            }
+            return arr;
+        }
+    </script>
+</body>
+</html> 
